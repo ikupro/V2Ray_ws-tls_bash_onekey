@@ -8,10 +8,8 @@ cd "$(
 )" || exit
 #====================================================
 #	System Request:Debian 9+/Ubuntu 18.04+/Centos 7+
-#	Author:	wulabing
 #	Dscription: V2ray ws+tls onekey Management
 #	Version: 1.0
-#	email:admin@wulabing.com
 #	Official document: www.v2ray.com
 #====================================================
 
@@ -24,11 +22,11 @@ RedBG="\033[41;37m"
 Font="\033[0m"
 
 #notification information
-# Info="${Green}[信息]${Font}"
+# Info="${Green}[Info]${Font}"
 OK="${Green}[OK]${Font}"
-Error="${Red}[错误]${Font}"
+Error="${Red}[Error]${Font}"
 
-# 版本
+# version
 shell_version="1.1.8.4"
 shell_mode="None"
 github_branch="master"
@@ -57,32 +55,32 @@ jemalloc_version="5.2.1"
 old_config_status="off"
 # v2ray_plugin_version="$(wget -qO- "https://github.com/shadowsocks/v2ray-plugin/tags" | grep -E "/shadowsocks/v2ray-plugin/releases/tag/" | head -1 | sed -r 's/.*tag\/v(.+)\">.*/\1/')"
 
-#移动旧版本配置信息 对小于 1.1.0 版本适配
+#Move legacy configuration information To less than 1.1.0 versions
 [[ -f "/etc/v2ray/vmess_qr.json" ]] && mv /etc/v2ray/vmess_qr.json $v2ray_qr_config_file
 
-#简易随机数
+#Simple random number
 random_num=$((RANDOM%12+4))
-#生成伪装路径
+#Generate camouflage path
 camouflage="/$(head -n 10 /dev/urandom | md5sum | head -c ${random_num})/"
 
 THREAD=$(grep 'processor' /proc/cpuinfo | sort -u | wc -l)
 
 source '/etc/os-release'
 
-#从VERSION中提取发行版系统的英文名称，为了在debian/ubuntu下添加相对应的Nginx apt源
+#Extract the English name of the distribution system from VERSION, in order to add the corresponding Nginx apt source under debian/ubuntu
 VERSION=$(echo "${VERSION}" | awk -F "[()]" '{print $2}')
 
 check_system() {
     if [[ "${ID}" == "centos" && ${VERSION_ID} -ge 7 ]]; then
-        echo -e "${OK} ${GreenBG} 当前系统为 Centos ${VERSION_ID} ${VERSION} ${Font}"
+        echo -e "${OK} ${GreenBG} The current system is Centos ${VERSION_ID} ${VERSION} ${Font}"
         INS="yum"
     elif [[ "${ID}" == "debian" && ${VERSION_ID} -ge 8 ]]; then
-        echo -e "${OK} ${GreenBG} 当前系统为 Debian ${VERSION_ID} ${VERSION} ${Font}"
+        echo -e "${OK} ${GreenBG} The current system Debian ${VERSION_ID} ${VERSION} ${Font}"
         INS="apt"
         $INS update
         ## 添加 Nginx apt源
     elif [[ "${ID}" == "ubuntu" && $(echo "${VERSION_ID}" | cut -d '.' -f1) -ge 16 ]]; then
-        echo -e "${OK} ${GreenBG} 当前系统为 Ubuntu ${VERSION_ID} ${UBUNTU_CODENAME} ${Font}"
+        echo -e "${OK} ${GreenBG} The current system Ubuntu ${VERSION_ID} ${UBUNTU_CODENAME} ${Font}"
         INS="apt"
         rm /var/lib/dpkg/lock
         dpkg --configure -a
@@ -90,7 +88,7 @@ check_system() {
         rm /var/cache/apt/archives/lock
         $INS update
     else
-        echo -e "${Error} ${RedBG} 当前系统为 ${ID} ${VERSION_ID} 不在支持的系统列表内，安装中断 ${Font}"
+        echo -e "${Error} ${RedBG} The current system ${ID} ${VERSION_ID} is not supported，Installation cancelled ${Font}"
         exit 1
     fi
 
@@ -98,34 +96,34 @@ check_system() {
 
     systemctl stop firewalld
     systemctl disable firewalld
-    echo -e "${OK} ${GreenBG} firewalld 已关闭 ${Font}"
+    echo -e "${OK} ${GreenBG} firewalld closed ${Font}"
 
     systemctl stop ufw
     systemctl disable ufw
-    echo -e "${OK} ${GreenBG} ufw 已关闭 ${Font}"
+    echo -e "${OK} ${GreenBG} ufw closed ${Font}"
 }
 
 is_root() {
     if [ 0 == $UID ]; then
-        echo -e "${OK} ${GreenBG} 当前用户是root用户，进入安装流程 ${Font}"
+        echo -e "${OK} ${GreenBG} The current user is the root user, enter the installation process ${Font}"
         sleep 3
     else
-        echo -e "${Error} ${RedBG} 当前用户不是root用户，请切换到root用户后重新执行脚本 ${Font}"
+        echo -e "${Error} ${RedBG} The current user is not a root user, please switch to the root user and re-execute the script ${Font}"
         exit 1
     fi
 }
 judge() {
     if [[ 0 -eq $? ]]; then
-        echo -e "${OK} ${GreenBG} $1 完成 ${Font}"
+        echo -e "${OK} ${GreenBG} $1 Finish ${Font}"
         sleep 1
     else
-        echo -e "${Error} ${RedBG} $1 失败${Font}"
+        echo -e "${Error} ${RedBG} $1 Failed${Font}"
         exit 1
     fi
 }
 chrony_install() {
     ${INS} -y install chrony
-    judge "安装 chrony 时间同步服务 "
+    judge "Install chrony time synchronization service "
 
     timedatectl set-ntp true
 
@@ -135,25 +133,25 @@ chrony_install() {
         systemctl enable chrony && systemctl restart chrony
     fi
 
-    judge "chronyd 启动 "
+    judge "chronyd start "
 
     timedatectl set-timezone Asia/Shanghai
 
-    echo -e "${OK} ${GreenBG} 等待时间同步 ${Font}"
+    echo -e "${OK} ${GreenBG} Waiting for time synchronization ${Font}"
     sleep 10
 
     chronyc sourcestats -v
     chronyc tracking -v
     date
-    read -rp "请确认时间是否准确,误差范围±3分钟(Y/N): " chrony_install
+    read -rp "Please confirm whether the time is accurate, the error range is ±3 minutes(Y/N): " chrony_install
     [[ -z ${chrony_install} ]] && chrony_install="Y"
     case $chrony_install in
     [yY][eE][sS] | [yY])
-        echo -e "${GreenBG} 继续安装 ${Font}"
+        echo -e "${GreenBG} Continue to install ${Font}"
         sleep 2
         ;;
     *)
-        echo -e "${RedBG} 安装终止 ${Font}"
+        echo -e "${RedBG} Installation terminated ${Font}"
         exit 2
         ;;
     esac
@@ -167,7 +165,7 @@ dependency_install() {
     else
         ${INS} -y install cron
     fi
-    judge "安装 crontab"
+    judge "Install crontab"
 
     if [[ "${ID}" == "centos" ]]; then
         touch /var/spool/cron/root && chmod 600 /var/spool/cron/root
@@ -177,26 +175,26 @@ dependency_install() {
         systemctl start cron && systemctl enable cron
 
     fi
-    judge "crontab 自启动配置 "
+    judge "crontab self-starting configuration "
 
     ${INS} -y install bc
-    judge "安装 bc"
+    judge "Install bc"
 
     ${INS} -y install unzip
-    judge "安装 unzip"
+    judge "Install unzip"
 
     ${INS} -y install qrencode
-    judge "安装 qrencode"
+    judge "Install qrencode"
 
     ${INS} -y install curl
-    judge "安装 curl"
+    judge "Install curl"
 
     if [[ "${ID}" == "centos" ]]; then
         ${INS} -y groupinstall "Development tools"
     else
         ${INS} -y install build-essential
     fi
-    judge "编译工具包 安装"
+    judge "Compilation toolkit installation"
 
     if [[ "${ID}" == "centos" ]]; then
         ${INS} -y install pcre pcre-devel zlib-devel epel-release
@@ -242,9 +240,9 @@ basic_optimization() {
 }
 port_alterid_set() {
     if [[ "on" != "$old_config_status" ]]; then
-        read -rp "请输入连接端口（default:443）:" port
+        read -rp "Please enter the connection port（default:443）:" port
         [[ -z ${port} ]] && port="443"
-        read -rp "请输入alterID（default:2 仅允许填数字）:" alterID
+        read -rp "Please enter alterID（default:2 Only numbers allowed）:" alterID
         [[ -z ${alterID} ]] && alterID="2"
     fi
 }
@@ -253,14 +251,14 @@ modify_path() {
         camouflage="$(grep '\"path\"' $v2ray_qr_config_file | awk -F '"' '{print $4}')"
     fi
     sed -i "/\"path\"/c \\\t  \"path\":\"${camouflage}\"" ${v2ray_conf}
-    judge "V2ray 伪装路径 修改"
+    judge "V2ray camouflage path modification"
 }
 modify_alterid() {
     if [[ "on" == "$old_config_status" ]]; then
         alterID="$(grep '\"aid\"' $v2ray_qr_config_file | awk -F '"' '{print $4}')"
     fi
     sed -i "/\"alterId\"/c \\\t  \"alterId\":${alterID}" ${v2ray_conf}
-    judge "V2ray alterid 修改"
+    judge "V2ray alterid modification"
     [ -f ${v2ray_qr_config_file} ] && sed -i "/\"aid\"/c \\  \"aid\": \"${alterID}\"," ${v2ray_qr_config_file}
     echo -e "${OK} ${GreenBG} alterID:${alterID} ${Font}"
 }
@@ -274,7 +272,7 @@ modify_inbound_port() {
     else
         sed -i "/\"port\"/c  \    \"port\":${port}," ${v2ray_conf}
     fi
-    judge "V2ray inbound_port 修改"
+    judge "V2ray inbound_port modification"
 }
 modify_UUID() {
     [ -z "$UUID" ] && UUID=$(cat /proc/sys/kernel/random/uuid)
@@ -282,7 +280,7 @@ modify_UUID() {
         UUID="$(info_extraction '\"id\"')"
     fi
     sed -i "/\"id\"/c \\\t  \"id\":\"${UUID}\"," ${v2ray_conf}
-    judge "V2ray UUID 修改"
+    judge "V2ray UUID modification"
     [ -f ${v2ray_qr_config_file} ] && sed -i "/\"id\"/c \\  \"id\": \"${UUID}\"," ${v2ray_qr_config_file}
     echo -e "${OK} ${GreenBG} UUID:${UUID} ${Font}"
 }
@@ -292,9 +290,9 @@ modify_nginx_port() {
     fi
     sed -i "/ssl http2;$/c \\\tlisten ${port} ssl http2;" ${nginx_conf}
     sed -i "3c \\\tlisten [::]:${port} http2;" ${nginx_conf}
-    judge "V2ray port 修改"
+    judge "V2ray port modification"
     [ -f ${v2ray_qr_config_file} ] && sed -i "/\"port\"/c \\  \"port\": \"${port}\"," ${v2ray_qr_config_file}
-    echo -e "${OK} ${GreenBG} 端口号:${port} ${Font}"
+    echo -e "${OK} ${GreenBG} Port number:${port} ${Font}"
 }
 modify_nginx_other() {
     sed -i "/server_name/c \\\tserver_name ${domain};" ${nginx_conf}
@@ -309,7 +307,7 @@ web_camouflage() {
     mkdir -p /home/wwwroot
     cd /home/wwwroot || exit
     git clone https://github.com/wulabing/3DCEList.git
-    judge "web 站点伪装"
+    judge "web site camouflage"
 }
 v2ray_install() {
     if [[ -d /root/v2ray ]]; then
@@ -320,15 +318,15 @@ v2ray_install() {
     fi
     mkdir -p /root/v2ray
     cd /root/v2ray || exit
-    wget -N --no-check-certificate https://raw.githubusercontent.com/wulabing/V2Ray_ws-tls_bash_onekey/${github_branch}/v2ray.sh
+    wget -N --no-check-certificate https://raw.githubusercontent.com/ikupro/V2Ray_ws-tls_bash_onekey/${github_branch}/v2ray.sh
 
     if [[ -f v2ray.sh ]]; then
         rm -rf $v2ray_systemd_file
         systemctl daemon-reload
         bash v2ray.sh --force
-        judge "安装 V2ray"
+        judge "Install V2ray"
     else
-        echo -e "${Error} ${RedBG} V2ray 安装文件下载失败，请检查下载地址是否可用 ${Font}"
+        echo -e "${Error} ${RedBG} V2ray installation file download failed, please check if the download address is available ${Font}"
         exit 4
     fi
     # 清除临时文件
@@ -336,10 +334,10 @@ v2ray_install() {
 }
 nginx_exist_check() {
     if [[ -f "/etc/nginx/sbin/nginx" ]]; then
-        echo -e "${OK} ${GreenBG} Nginx已存在，跳过编译安装过程 ${Font}"
+        echo -e "${OK} ${GreenBG} Nginx already exists, skip the compilation and installation process ${Font}"
         sleep 2
     elif [[ -d "/usr/local/nginx/" ]]; then
-        echo -e "${OK} ${GreenBG} 检测到其他套件安装的Nginx，继续安装会造成冲突，请处理后安装${Font}"
+        echo -e "${OK} ${GreenBG} Nginx installed by other packages is detected. If you continue to install it, it will cause conflicts. Please install after handling.${Font}"
         exit 1
     else
         nginx_install
@@ -351,11 +349,11 @@ nginx_install() {
     #    fi
 
     wget -nc --no-check-certificate http://nginx.org/download/nginx-${nginx_version}.tar.gz -P ${nginx_openssl_src}
-    judge "Nginx 下载"
+    judge "Nginx download"
     wget -nc --no-check-certificate https://www.openssl.org/source/openssl-${openssl_version}.tar.gz -P ${nginx_openssl_src}
-    judge "openssl 下载"
+    judge "openssl download"
     wget -nc --no-check-certificate https://github.com/jemalloc/jemalloc/releases/download/${jemalloc_version}/jemalloc-${jemalloc_version}.tar.bz2 -P ${nginx_openssl_src}
-    judge "jemalloc 下载"
+    judge "jemalloc download"
 
     cd ${nginx_openssl_src} || exit
 
@@ -370,18 +368,18 @@ nginx_install() {
 
     [[ -d "$nginx_dir" ]] && rm -rf ${nginx_dir}
 
-    echo -e "${OK} ${GreenBG} 即将开始编译安装 jemalloc ${Font}"
+    echo -e "${OK} ${GreenBG} About to start compiling and installing jemalloc ${Font}"
     sleep 2
 
     cd jemalloc-${jemalloc_version} || exit
     ./configure
-    judge "编译检查"
+    judge "Compile check"
     make -j "${THREAD}" && make install
-    judge "jemalloc 编译安装"
+    judge "jemalloc compile and install"
     echo '/usr/local/lib' >/etc/ld.so.conf.d/local.conf
     ldconfig
 
-    echo -e "${OK} ${GreenBG} 即将开始编译安装 Nginx, 过程稍久，请耐心等待 ${Font}"
+    echo -e "${OK} ${GreenBG} Compilation and installation of Nginx will start soon, the process will take a little longer, please wait ${Font}"
     sleep 4
 
     cd ../nginx-${nginx_version} || exit
@@ -400,9 +398,9 @@ nginx_install() {
         --with-cc-opt='-O3' \
         --with-ld-opt="-ljemalloc" \
         --with-openssl=../openssl-"$openssl_version"
-    judge "编译检查"
+    judge "Compile check"
     make -j "${THREAD}" && make install
-    judge "Nginx 编译安装"
+    judge "Nginx compile and install"
 
     # 修改基本配置
     sed -i 's/#user  nobody;/user  root;/' ${nginx_dir}/conf/nginx.conf
@@ -425,32 +423,32 @@ ssl_install() {
     else
         ${INS} install socat netcat -y
     fi
-    judge "安装 SSL 证书生成脚本依赖"
+    judge "Install SSL certificate generation script dependency"
 
     curl https://get.acme.sh | sh
-    judge "安装 SSL 证书生成脚本"
+    judge "Install the SSL certificate generation script"
 }
 domain_check() {
-    read -rp "请输入你的域名信息(eg:www.wulabing.com):" domain
+    read -rp "Please enter your domain name(eg:www.example.com):" domain
     domain_ip=$(ping "${domain}" -c 1 | sed '1{s/[^(]*(//;s/).*//;q}')
-    echo -e "${OK} ${GreenBG} 正在获取 公网ip 信息，请耐心等待 ${Font}"
+    echo -e "${OK} ${GreenBG} Obtaining public network ip information, please wait... ${Font}"
     local_ip=$(curl https://api-ipv4.ip.sb/ip)
-    echo -e "域名dns解析IP：${domain_ip}"
-    echo -e "本机IP: ${local_ip}"
+    echo -e "Domain name dns resolve IP：${domain_ip}"
+    echo -e "Local IP: ${local_ip}"
     sleep 2
     if [[ $(echo "${local_ip}" | tr '.' '+' | bc) -eq $(echo "${domain_ip}" | tr '.' '+' | bc) ]]; then
-        echo -e "${OK} ${GreenBG} 域名dns解析IP 与 本机IP 匹配 ${Font}"
+        echo -e "${OK} ${GreenBG} Domain name dns resolution IP matches the local IP ${Font}"
         sleep 2
     else
-        echo -e "${Error} ${RedBG} 请确保域名添加了正确的 A 记录，否则将无法正常使用 V2ray ${Font}"
-        echo -e "${Error} ${RedBG} 域名dns解析IP 与 本机IP 不匹配 是否继续安装？（y/n）${Font}" && read -r install
+        echo -e "${Error} ${RedBG} Please make sure that the correct A record is added to the domain name, otherwise you will not be able to use V2ray normally ${Font}"
+        echo -e "${Error} ${RedBG} The DNS resolution IP of the domain name does not match the local IP. Do you want to continue the installation?？（y/n）${Font}" && read -r install
         case $install in
         [yY][eE][sS] | [yY])
-            echo -e "${GreenBG} 继续安装 ${Font}"
+            echo -e "${GreenBG} Continue to install ${Font}"
             sleep 2
             ;;
         *)
-            echo -e "${RedBG} 安装终止 ${Font}"
+            echo -e "${RedBG} Installation terminated ${Font}"
             exit 2
             ;;
         esac
@@ -459,47 +457,47 @@ domain_check() {
 
 port_exist_check() {
     if [[ 0 -eq $(lsof -i:"$1" | grep -i -c "listen") ]]; then
-        echo -e "${OK} ${GreenBG} $1 端口未被占用 ${Font}"
+        echo -e "${OK} ${GreenBG} $1 Port is not occupied ${Font}"
         sleep 1
     else
-        echo -e "${Error} ${RedBG} 检测到 $1 端口被占用，以下为 $1 端口占用信息 ${Font}"
+        echo -e "${Error} ${RedBG} It is detected that the $1 port is occupied, the following is the occupation information of the $1 port${Font}"
         lsof -i:"$1"
-        echo -e "${OK} ${GreenBG} 5s 后将尝试自动 kill 占用进程 ${Font}"
+        echo -e "${OK} ${GreenBG} After 5s, it will try to kill the occupied process automatically ${Font}"
         sleep 5
         lsof -i:"$1" | awk '{print $2}' | grep -v "PID" | xargs kill -9
-        echo -e "${OK} ${GreenBG} kill 完成 ${Font}"
+        echo -e "${OK} ${GreenBG} kill complete ${Font}"
         sleep 1
     fi
 }
 acme() {
     "$HOME"/.acme.sh/acme.sh --set-default-ca --server letsencrypt
     if "$HOME"/.acme.sh/acme.sh --issue -d "${domain}" --standalone -k ec-256 --force --test; then
-        echo -e "${OK} ${GreenBG} SSL 证书测试签发成功，开始正式签发 ${Font}"
+        echo -e "${OK} ${GreenBG} SSL certificate test issuance is successful, and the formal issuance begins ${Font}"
         rm -rf "$HOME/.acme.sh/${domain}_ecc"
         sleep 2
     else
-        echo -e "${Error} ${RedBG} SSL 证书测试签发失败 ${Font}"
+        echo -e "${Error} ${RedBG} SSL certificate test issuance failed ${Font}"
         rm -rf "$HOME/.acme.sh/${domain}_ecc"
         exit 1
     fi
 
     if "$HOME"/.acme.sh/acme.sh --issue -d "${domain}" --standalone -k ec-256 --force; then
-        echo -e "${OK} ${GreenBG} SSL 证书生成成功 ${Font}"
+        echo -e "${OK} ${GreenBG} SSL certificate generated successfully ${Font}"
         sleep 2
         mkdir /data
         if "$HOME"/.acme.sh/acme.sh --installcert -d "${domain}" --fullchainpath /data/v2ray.crt --keypath /data/v2ray.key --ecc --force; then
-            echo -e "${OK} ${GreenBG} 证书配置成功 ${Font}"
+            echo -e "${OK} ${GreenBG} Certificate configuration is successful ${Font}"
             sleep 2
         fi
     else
-        echo -e "${Error} ${RedBG} SSL 证书生成失败 ${Font}"
+        echo -e "${Error} ${RedBG} SSL certificate generation failed ${Font}"
         rm -rf "$HOME/.acme.sh/${domain}_ecc"
         exit 1
     fi
 }
 v2ray_conf_add_tls() {
     cd /etc/v2ray || exit
-    wget --no-check-certificate https://raw.githubusercontent.com/wulabing/V2Ray_ws-tls_bash_onekey/${github_branch}/tls/config.json -O config.json
+    wget --no-check-certificate https://raw.githubusercontent.com/ikupro/V2Ray_ws-tls_bash_onekey/${github_branch}/tls/config.json -O config.json
     modify_path
     modify_alterid
     modify_inbound_port
@@ -507,7 +505,7 @@ v2ray_conf_add_tls() {
 }
 v2ray_conf_add_h2() {
     cd /etc/v2ray || exit
-    wget --no-check-certificate https://raw.githubusercontent.com/wulabing/V2Ray_ws-tls_bash_onekey/${github_branch}/http2/config.json -O config.json
+    wget --no-check-certificate https://raw.githubusercontent.com/ikupro/V2Ray_ws-tls_bash_onekey/${github_branch}/http2/config.json -O config.json
     modify_path
     modify_alterid
     modify_inbound_port
@@ -515,17 +513,17 @@ v2ray_conf_add_h2() {
 }
 old_config_exist_check() {
     if [[ -f $v2ray_qr_config_file ]]; then
-        echo -e "${OK} ${GreenBG} 检测到旧配置文件，是否读取旧文件配置 [Y/N]? ${Font}"
+        echo -e "${OK} ${GreenBG} Old configuration file detected, whether to read the old file configuration [Y/N]? ${Font}"
         read -r ssl_delete
         case $ssl_delete in
         [yY][eE][sS] | [yY])
-            echo -e "${OK} ${GreenBG} 已保留旧配置  ${Font}"
+            echo -e "${OK} ${GreenBG} Old configuration has been saved  ${Font}"
             old_config_status="on"
             port=$(info_extraction '\"port\"')
             ;;
         *)
             rm -rf $v2ray_qr_config_file
-            echo -e "${OK} ${GreenBG} 已删除旧配置  ${Font}"
+            echo -e "${OK} ${GreenBG} Old configuration deleted  ${Font}"
             ;;
         esac
     fi
@@ -577,7 +575,7 @@ EOF
 
     modify_nginx_port
     modify_nginx_other
-    judge "Nginx 配置修改"
+    judge "Nginx configuration modification"
 
 }
 
@@ -586,18 +584,18 @@ start_process_systemd() {
     chown -R root.root /var/log/v2ray/
     if [[ "$shell_mode" != "h2" ]]; then
         systemctl restart nginx
-        judge "Nginx 启动"
+        judge "Nginx start"
     fi
     systemctl restart v2ray
-    judge "V2ray 启动"
+    judge "V2ray start"
 }
 
 enable_process_systemd() {
     systemctl enable v2ray
-    judge "设置 v2ray 开机自启"
+    judge "Set v2ray to start automatically after booting"
     if [[ "$shell_mode" != "h2" ]]; then
         systemctl enable nginx
-        judge "设置 Nginx 开机自启"
+        judge "Set Nginx to start automatically after booting"
     fi
 
 }
@@ -625,7 +623,7 @@ nginx_process_disabled() {
 #    judge "rc.local 配置"
 #}
 acme_cron_update() {
-    wget -N -P /usr/bin --no-check-certificate "https://raw.githubusercontent.com/wulabing/V2Ray_ws-tls_bash_onekey/dev/ssl_update.sh"
+    wget -N -P /usr/bin --no-check-certificate "https://raw.githubusercontent.com/ikupro/V2Ray_ws-tls_bash_onekey/dev/ssl_update.sh"
     if [[ $(crontab -l | grep -c "ssl_update.sh") -lt 1 ]]; then
       if [[ "${ID}" == "centos" ]]; then
           #        sed -i "/acme.sh/c 0 3 * * 0 \"/root/.acme.sh\"/acme.sh --cron --home \"/root/.acme.sh\" \
@@ -637,7 +635,7 @@ acme_cron_update() {
           sed -i "/acme.sh/c 0 3 * * 0 bash ${ssl_update_file}" /var/spool/cron/crontabs/root
       fi
     fi
-    judge "cron 计划任务更新"
+    judge "cron scheduled task update"
 }
 
 vmess_qr_config_tls_ws() {
@@ -678,9 +676,9 @@ EOF
 vmess_qr_link_image() {
     vmess_link="vmess://$(base64 -w 0 $v2ray_qr_config_file)"
     {
-        echo -e "$Red 二维码: $Font"
+        echo -e "$Red QR code: $Font"
         echo -n "${vmess_link}" | qrencode -o - -t utf8
-        echo -e "${Red} URL导入链接:${vmess_link} ${Font}"
+        echo -e "${Red} URL import link:${vmess_link} ${Font}"
     } >>"${v2ray_info_file}"
 }
 
@@ -690,17 +688,17 @@ vmess_quan_link_image() {
     certificate=1, obfs=ws, obfs-path="\"$(info_extraction '\"path\"')\"", " > /tmp/vmess_quan.tmp
     vmess_link="vmess://$(base64 -w 0 /tmp/vmess_quan.tmp)"
     {
-        echo -e "$Red 二维码: $Font"
+        echo -e "$Red QR code: $Font"
         echo -n "${vmess_link}" | qrencode -o - -t utf8
-        echo -e "${Red} URL导入链接:${vmess_link} ${Font}"
+        echo -e "${Red} URL import link:${vmess_link} ${Font}"
     } >>"${v2ray_info_file}"
 }
 
 vmess_link_image_choice() {
-        echo "请选择生成的链接种类"
+        echo "Please select the type of generated link"
         echo "1: V2RayNG/V2RayN"
         echo "2: quantumult"
-        read -rp "请输入：" link_version
+        read -rp "Please enter：" link_version
         [[ -z ${link_version} ]] && link_version=1
         if [[ $link_version == 1 ]]; then
             vmess_qr_link_image
@@ -715,17 +713,17 @@ info_extraction() {
 }
 basic_information() {
     {
-        echo -e "${OK} ${GreenBG} V2ray+ws+tls 安装成功"
-        echo -e "${Red} V2ray 配置信息 ${Font}"
-        echo -e "${Red} 地址（address）:${Font} $(info_extraction '\"add\"') "
-        echo -e "${Red} 端口（port）：${Font} $(info_extraction '\"port\"') "
-        echo -e "${Red} 用户id（UUID）：${Font} $(info_extraction '\"id\"')"
-        echo -e "${Red} 额外id（alterId）：${Font} $(info_extraction '\"aid\"')"
-        echo -e "${Red} 加密方式（security）：${Font} 自适应 "
-        echo -e "${Red} 传输协议（network）：${Font} $(info_extraction '\"net\"') "
-        echo -e "${Red} 伪装类型（type）：${Font} none "
-        echo -e "${Red} 路径（不要落下/）：${Font} $(info_extraction '\"path\"') "
-        echo -e "${Red} 底层传输安全：${Font} tls "
+        echo -e "${OK} ${GreenBG} V2ray+ws+tls installed successfully"
+        echo -e "${Red} V2ray configuration information ${Font}"
+        echo -e "${Red} Address:${Font} $(info_extraction '\"add\"') "
+        echo -e "${Red} Port：${Font} $(info_extraction '\"port\"') "
+        echo -e "${Red} UUID：${Font} $(info_extraction '\"id\"')"
+        echo -e "${Red} AlterId：${Font} $(info_extraction '\"aid\"')"
+        echo -e "${Red} Security：${Font} Adaptive "
+        echo -e "${Red} Network：${Font} $(info_extraction '\"net\"') "
+        echo -e "${Red} Type：${Font} none "
+        echo -e "${Red} Path (don't remove /)：${Font} $(info_extraction '\"path\"') "
+        echo -e "${Red} Underlying transmission security：${Font} tls "
     } >"${v2ray_info_file}"
 }
 show_information() {
@@ -733,13 +731,13 @@ show_information() {
 }
 ssl_judge_and_install() {
     if [[ -f "/data/v2ray.key" || -f "/data/v2ray.crt" ]]; then
-        echo "/data 目录下证书文件已存在"
-        echo -e "${OK} ${GreenBG} 是否删除 [Y/N]? ${Font}"
+        echo "The certificate file in the data directory already exists"
+        echo -e "${OK} ${GreenBG} Whether to delete [Y/N]? ${Font}"
         read -r ssl_delete
         case $ssl_delete in
         [yY][eE][sS] | [yY])
             rm -rf /data/*
-            echo -e "${OK} ${GreenBG} 已删除 ${Font}"
+            echo -e "${OK} ${GreenBG} Deleted ${Font}"
             ;;
         *) ;;
 
@@ -747,11 +745,11 @@ ssl_judge_and_install() {
     fi
 
     if [[ -f "/data/v2ray.key" || -f "/data/v2ray.crt" ]]; then
-        echo "证书文件已存在"
+        echo "The certificate file already exists"
     elif [[ -f "$HOME/.acme.sh/${domain}_ecc/${domain}.key" && -f "$HOME/.acme.sh/${domain}_ecc/${domain}.cer" ]]; then
-        echo "证书文件已存在"
+        echo "The certificate file already exists"
         "$HOME"/.acme.sh/acme.sh --installcert -d "${domain}" --fullchainpath /data/v2ray.crt --keypath /data/v2ray.key --ecc
-        judge "证书应用"
+        judge "Certificate application"
     else
         ssl_install
         acme
